@@ -282,21 +282,26 @@ proc chatBox(): VNode =
     for msg in messages:
       let class = if msg.name == "server": "Event" else: "Text"
       tdiv(class=("message" & class)):
-        if class == "Text":
-          tdiv(class="messageName"): text &"{msg.name}: "
-        text msg.text
+        if msg.name == "server":
+          tdiv(class="messageImportant"): text msg.text
+        else:
+          tdiv(class="messageName"): text "{msg.name}: "
+          text msg.text
 
 proc usersBox(): VNode =
   result = buildHtml(tdiv(class="tabBox", id="kinoUsers")):
     if server.users.len > 0:
       for i, user in server.users:
         tdiv(class="userElem"):
-          text user
-          if user == name: text " (You)"
+          if user in server.jannies or (user == name and role == admin):
+            tdiv(class="userElemMod"): text user
+          else: text user
+
+          if user == name: 
+            tdiv(class="userElemSelf"): text "(You)"
           elif role == admin:
             button(id="toggleJanny", class="actionBtn", index = i, onclick=parseAction):
               text "Tog. Janny"
-          if user in server.jannies: text " (Janny)"
     else:
       text "No users. (That's weird, you're here tho)"
 
@@ -326,7 +331,6 @@ proc tabButtons(): VNode =
     button(class="tabButton", id="btnPlaylist"):
       text "Playlist"
       proc onclick() = switchTab(playlistTab)
-
 
 proc resizeHandle(): VNode =
   var isResizing = false

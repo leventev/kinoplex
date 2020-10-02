@@ -366,7 +366,7 @@ proc init(p: var Plyr, id: string) =
   p.on("playing", syncPlaying)
   p.on("pause", syncPlaying)
   document.addEventListener("keypress", onkeypress)
-  
+
 proc createDom(): VNode =
   result = buildHtml(tdiv):
     tdiv(class="kinopanel"):

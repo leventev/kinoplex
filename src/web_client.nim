@@ -291,7 +291,7 @@ proc usersBox(): VNode =
     if server.users.len > 0:
       for i, user in server.users:
         let class = 
-          if user in server.jannies or (user == name and role == admin): 
+          if user in server.jannies: 
             "userElemMod" else: "userElem"
 
         tdiv(class=class):

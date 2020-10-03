@@ -292,9 +292,9 @@ proc usersBox(): VNode =
       for i, user in server.users:
         let class = 
           if user in server.jannies or (user == name and role == admin): 
-            "Mod" else: ""
+            "userElemMod" else: "userElem"
 
-        tdiv(class=("userElem" & class)):
+        tdiv(class=class):
           text user
           if user == name: 
             tdiv(class="userElemSelf"): text "(You)"

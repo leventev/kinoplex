@@ -32,6 +32,9 @@ template send(client, msg) =
 proc short(text: string, limit: int): string =
   text[0..min(limit, text.high)]
 
+proc toUserSeq(c: seq[Client]): seq[User] =
+  c.mapIt(User(role: it.role, name: it.name))
+
 proc broadcast(msg: Event; skip=(-1)) =
   for c in clients:
     if c.id == skip: continue
@@ -63,7 +66,7 @@ proc authorize(client: Client; name, pass: string) {.async.} =
     client.send(PlaylistLoad(playlist))
     client.send(PlaylistPlay(playlistIndex))
   client.send(State(playing, timestamp))
-  client.send(Clients(clients.mapIt(User(role: it.role, name: it.name))))
+  client.send(Clients(clients.toUserSeq()))
 
 proc handle(client: Client; ev: Event) {.async.} =
   # if ev.kind != EventKind.Auth:
@@ -91,7 +94,7 @@ proc handle(client: Client; ev: Event) {.async.} =
       broadcast(Renamed(client.name, shortName))
       client.name = shortName
     Clients:
-      client.send(Clients(clients.mapIt(User(role: it.role, name: it.name))))
+      client.send(Clients(clients.toUserSeq()))
     State(state, time):
       checkPermission(admin)
       playing = state

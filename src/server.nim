@@ -63,8 +63,7 @@ proc authorize(client: Client; name, pass: string) {.async.} =
     client.send(PlaylistLoad(playlist))
     client.send(PlaylistPlay(playlistIndex))
   client.send(State(playing, timestamp))
-  client.send(Clients(clients.mapIt(it.name)))
-  client.send(Jannies(clients.filterIt(it.role == janny).mapIt(it.name)))
+  client.send(Clients(clients.mapIt(User(role: it.role, name: it.name))))
 
 proc handle(client: Client; ev: Event) {.async.} =
   # if ev.kind != EventKind.Auth:
@@ -92,9 +91,7 @@ proc handle(client: Client; ev: Event) {.async.} =
       broadcast(Renamed(client.name, shortName))
       client.name = shortName
     Clients:
-      client.send(Clients(clients.mapIt(it.name)))
-    Jannies:
-      client.send(Jannies(clients.filterIt(it.role == janny).mapIt(it.name)))
+      client.send(Clients(clients.mapIt(User(role: it.role, name: it.name))))
     State(state, time):
       checkPermission(admin)
       playing = state
@@ -145,7 +142,7 @@ proc handle(client: Client; ev: Event) {.async.} =
           c.role = user
           broadcast(Message("server", c.name & " is no longer a janny"))
         broadcast(Janny(c.name, state))
-      
+
       if not found:
         client.send(Error("Invalid user"))
     _: echo "unknown: ", ev

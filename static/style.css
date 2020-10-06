@@ -65,14 +65,18 @@ a:visited {
     color: #d79921;
 }
 
-.userElemMod {
+.userElemJanny {
+    color: #af3a03;
+}
+
+.userElemAdmin {
     color: #cc241d;
 }
 
 .userElemSelf {
     display: inline-block;
     font-weight: bold;
-    color: #458588;
+    color: #8ec07c;
     margin-left: 5px;
 }
 

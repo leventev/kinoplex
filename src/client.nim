@@ -185,7 +185,7 @@ proc handleMessage(msg: string) {.async.} =
     else:
       server.send(Janny(parts[1], true))
   of "js", "jannies":
-    server.send(Jannies(@[]))
+    server.send(Clients(@[]))
   of "h":
     player.showText("help yourself")
   of "r", "reload":
@@ -284,8 +284,8 @@ proc handleServer() {.async.} =
           showText(&"{name}: {text}")
       State(playing, time):
         setState(playing, time)
-      Clients(names):
-        showEvent("Users: " & names.join(", "))
+      Clients(users):
+        showEvent("Users: " & users.mapIt(it.name).join(", "))
       Joined(name, role):
         showEvent(&"{name} joined as {role}")
       Left(name):
@@ -295,11 +295,6 @@ proc handleServer() {.async.} =
       Janny(janname, state):
         if role != admin:
           role = if state and name == janname: janny else: user
-      Jannies(jannies):
-        if jannies.len < 1:
-          showEvent("There are currently no jannies")
-        else:
-          showEvent("Jannies: " & jannies.join(", "))
       PlaylistLoad(urls):
         server.playlist = urls
         clearPlaylist()

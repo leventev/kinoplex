@@ -7,7 +7,7 @@ type
     ws: WebSocket
     host: string
     playlist: seq[string]
-    users, jannies: seq[string]
+    users: seq[User]
     index: int
     playing: bool
     time: float
@@ -183,10 +183,10 @@ proc syncIndex(index: int) =
   player.source = server.playlist[index]
   if activeTab == playlistTab: redraw()
 
-proc toggleJanny(user: string, isJanny: bool) =
-  if user notin server.users: return
+proc toggleJanny(u: User) =
   if role == admin:
-    server.send(Janny(user, not isJanny))
+    server.send(Janny(u.name, u.role == user))
+
   if activeTab == usersTab: redraw()
 
 proc wsOnOpen(e: dom.Event) =
@@ -200,7 +200,7 @@ proc wsOnMessage(e: MessageEvent) =
         authenticate(newUser, newRole)
       else:
         showEvent(&"{newUser} joined as {$newRole}")
-        server.users.add(newUser)
+        server.users.add(User(role: newRole, name: newUser))
         # Force a resync if the movie is paused
         if role == admin and not player.playing$bool:
           syncTime()
@@ -208,14 +208,13 @@ proc wsOnMessage(e: MessageEvent) =
         if activeTab == usersTab: redraw()
     Left(name):
       showEvent(&"{name} left")
-      server.users.keepItIf(it != name)
-      server.jannies.keepItIf(it != name)
+      server.users.keepItIf(it.name != name)
       if activeTab == usersTab: redraw()
     Renamed(oldName, newName):
       if oldName == name: name = newName
-      server.users[server.users.find(oldName)] = newName
-      if oldName in server.jannies:
-        server.jannies[server.jannies.find(oldName)] = newName
+      let idx = server.users.find(oldName)
+      if idx != -1:
+        server.users[server.users.find(oldName)].name = newName
       if activeTab == usersTab: redraw()
     Message(name, text):
       showMessage(name, text)
@@ -240,13 +239,8 @@ proc wsOnMessage(e: MessageEvent) =
       server.users = users
       if activeTab == usersTab: redraw()
     Janny(janname, state):
-      if role != admin:
-        role = if state and name == janname: janny else: user
-      if state: server.jannies.add janname
-      else: server.jannies.keepItIf(it != janname)
-      if activeTab == usersTab: redraw()
-    Jannies(jannies):
-      server.jannies = jannies
+      let r = if state: janny else: user
+      server.users[server.users.find(janname)].role = r
       if activeTab == usersTab: redraw()
     Error(reason):
       window.alert(reason)
@@ -272,8 +266,7 @@ proc parseAction(ev: dom.Event, n: VNode) =
   of "playMovie": syncIndex(n.index)
   of "clearPlaylist": server.send(PlaylistClear())
   of "toggleJanny":
-    let user = server.users[n.index]
-    toggleJanny(user, user in server.jannies)
+    toggleJanny(server.users[n.index])
   # More to come
   else: discard
 
@@ -289,14 +282,19 @@ proc chatBox(): VNode =
 proc usersBox(): VNode =
   result = buildHtml(tdiv(class="tabBox", id="kinoUsers")):
     if server.users.len > 0:
-      for i, user in server.users:
-        let class = 
-          if user in server.jannies: 
-            "userElemMod" else: "userElem"
+      for i, u in server.users:
+        let class =
+          case u.role
+            of admin:
+              "userElemAdmin"
+            of janny:
+              "userElemJanny"
+            of user:
+              "userElem"
 
         tdiv(class=class):
-          text user
-          if user == name: 
+          text u.name
+          if u.name == name:
             tdiv(class="userElemSelf"): text "(You)"
           elif role == admin:
             button(id="toggleJanny", class="actionBtn", index = i, onclick=parseAction):
